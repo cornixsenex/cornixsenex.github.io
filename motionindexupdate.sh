@@ -6,17 +6,16 @@ NewVidCount=$(ls -lrht /home/qwe/Media/Videos/motion/$Date | wc | awk 'NR==1{pri
 
 if [ $LastVidCount == $NewVidCount ]
 then
-	echo "Vid count has NOT changed"
-else
-	echo "Vid count changed"
 	echo "$NewVidCount" > /home/qwe/code/cornixsenex.github.io/vidcount.txt
+else
+	echo "$NewVidCount" > /home/qwe/code/cornixsenex.github.io/vidcount.txt
+	cd /home/qwe/Media/Videos/motion
+	ls -lrht $Date > /home/qwe/code/cornixsenex.github.io/index.html
+	cd /home/qwe/code/cornixsenex.github.io
+	Time="$(date +%R)"
+	git add --all
+	git commit -m "$Time"
+	git push origin main
 fi
 
-cd /home/qwe/Media/Videos/motion
-ls -lrht $Date > /home/qwe/code/cornixsenex.github.io/index.html
-cd /home/qwe/code/cornixsenex.github.io
-Time="$(date +%R)"
-git add --all
-git commit -m "$Time"
-git push origin main
 
