@@ -9,6 +9,7 @@ then
 	echo "Vid count has NOT changed"
 else
 	echo "Vid count changed"
+	echo "$NewVidCount" > /home/qwe/code/cornixsenex.github.io/vidcount.txt
 fi
 
 cd /home/qwe/Media/Videos/motion
