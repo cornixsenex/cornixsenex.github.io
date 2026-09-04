@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Deli Inventory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Makes the input numbers look better on mobile */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col p-4">
+        
+        <!-- Header -->
+        <header class="py-6 text-center">
+            <h1 class="text-3xl font-bold text-gray-800">Deli Order</h1>
+            <p class="text-gray-500 text-sm">Inventory Count</p>
+        </header>
+
+        <!-- Input Section -->
+        <div id="input-section" class="space-y-3">
+            <!-- Items will be injected here by JavaScript -->
+        </div>
+
+        <!-- Action Button -->
+        <div class="mt-8 mb-10">
+            <button onclick="calculateOrder()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95">
+                Generate Order
+            </button>
+        </div>
+
+        <!-- Results Section (Hidden by default) -->
+        <div id="results-section" class="hidden fixed inset-0 bg-white z-50 p-6 flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Order Summary</h2>
+                <button onclick="hideResults()" class="text-gray-400 text-3xl">&times;</button>
+            </div>
+            
+            <div id="order-list" class="flex-grow text-lg space-y-2 overflow-y-auto">
+                <!-- Calculated items appear here -->
+            </div>
+
+            <div class="space-y-3 mt-6">
+                <button onclick="copyToClipboard()" class="w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-md active:scale-95">
+                    Copy to Clipboard
+                </button>
+                <button onclick="hideResults()" class="w-full bg-gray-200 text-gray-700 font-bold py-4 rounded-xl active:scale-95">
+                    Back to Edit
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. YOUR DATA - This is where you add/change items and par levels
+        const inventory = [
+            { name: "Salami", par: 5 },
+            { name: "Cappy", par: 4 },
+            { name: "Pastrami", par: 2 },
+            { name: "Ham", par: 4 },
+            { name: "Pepper Jack", par: 3 },
+            { name: "Provolone", par: 6 },
+            { name: "Cheddar", par: 7 },
+            { name: "Gouda", par: 8 },
+            { name: "Swiss", par: 2 },
+            { name: "Mortadella", par: 2 },
+            { name: "Vegan Turkey", par: 6 },
+            { name: "Vegan Ham", par: 6 }
+        ];
+
+        const inputSection = document.getElementById('input-section');
+        const resultsSection = document.getElementById('results-section');
+        const orderListDiv = document.getElementById('order-list');
+
+        // 2. INITIALIZE THE APP: Build the list of inputs
+        function init() {
+            inventory.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-gray-200";
+                div.innerHTML = `
+                    <label class="text-lg font-medium text-gray-700">${item.name}</label>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-gray-400 text-sm">In Stock:</span>
+                        <input type="number" id="input-${index}" 
+                            class="w-16 text-center text-xl font-bold border-b-2 border-blue-500 focus:outline-none" 
+                            placeholder="0"
+                            inputmode="decimal">
+                    </div>
+                `;
+                inputSection.appendChild(div);
+            });
+        }
+
+        // 3. CALCULATE LOGIC
+        function calculateOrder() {
+            let summaryText = "--- BOAR'S HEAD ORDER ---\n";
+            let itemsToOrderCount = 0;
+
+            inventory.forEach((item, index) => {
+                const inputVal = document.getElementById(`input-${index}`).value;
+                const currentStock = parseFloat(inputVal) || 0;
+                const orderAmount = item.par - currentStock;
+
+                if (orderAmount > 0) {
+                    summaryText += `${item.name}: ${orderAmount}\n`;
+                    itemsToOrderCount++;
+                }
+            });
+
+            if (itemsToOrderCount === 0) {
+                alert("Everything is fully stocked! No order needed.");
+                return;
+            }
+
+            displayResults(summaryText);
+        }
+
+        // 4. UI FUNCTIONS
+        function displayResults(text) {
+            orderListDiv.innerText = text;
+            resultsSection.classList.remove('hidden');
+        }
+
+        function hideResults() {
+            resultsSection.classList.add('hidden');
+        }
+
+        function copyToClipboard() {
+            const text = orderListDiv.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Order copied to clipboard! You can now paste it into a text or email.");
+            });
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
