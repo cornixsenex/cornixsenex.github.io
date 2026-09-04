@@ -71,9 +71,9 @@
             { name: "Cheddar", par: 7 },
             { name: "Gouda", par: 8 },
             { name: "Swiss", par: 2 },
-            { name: "Mortadella", par: 2 },
-            { name: "Vegan Turkey", par: 6 },
-            { name: "Vegan Ham", par: 6 }
+            { name: "Mortadella (Via Santiago)", par: 2 },
+            { name: "Vegan Turkey (Case of 3)", par: 2 },
+            { name: "Vegan Ham (Case of 3)", par: 2 }
         ];
 
         const inputSection = document.getElementById('input-section');
@@ -101,7 +101,7 @@
 
         // 3. CALCULATE LOGIC
         function calculateOrder() {
-            let summaryText = "--- BOAR'S HEAD ORDER ---\n";
+            let summaryText = "Hello here is the boar's head order for this week:\n\n";
             let itemsToOrderCount = 0;
 
             inventory.forEach((item, index) => {
