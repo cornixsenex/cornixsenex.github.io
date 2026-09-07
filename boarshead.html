@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Boar's Head</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" href="./dist/output.css">
     <style>
         /* Makes the input numbers look better on mobile */
         input::-webkit-outer-spin-button,
@@ -22,6 +22,7 @@
         <header class="py-6 text-center">
             <h1 class="text-3xl font-bold text-gray-800">Boar's Head</h1>
             <p class="text-gray-500 text-sm">Inventory Count</p>
+            <p class="text-gray-500 text-sm">Also check mortadella (2) and vegan (2 cases of 3) for Santi</p>
         </header>
 
         <!-- Input Section -->
@@ -62,18 +63,18 @@
     <script>
         // 1. YOUR DATA - This is where you add/change items and par levels
         const inventory = [
-            { name: "Salami", par: 5 },
-            { name: "Cappy", par: 4 },
-            { name: "Pastrami", par: 2 },
+            { name: "Dry Salami", par: 5 },
+            { name: "Fresh Cappy", par: 4 },
+            { name: "Pastrami Navel", par: 2 },
             { name: "Ham", par: 4 },
             { name: "Pepper Jack", par: 3 },
-            { name: "Provolone", par: 6 },
-            { name: "Cheddar", par: 7 },
+            { name: "Sharp Provolone", par: 6 },
+            { name: "Sharp Cheddar", par: 7 },
             { name: "Gouda", par: 8 },
-            { name: "Swiss", par: 2 },
-            { name: "Mortadella (Via Santiago)", par: 2 },
-            { name: "Vegan Turkey (Case of 3)", par: 2 },
-            { name: "Vegan Ham (Case of 3)", par: 2 }
+            { name: "Swiss", par: 2 }
+//            { name: "Mortadella (Via Santiago)", par: 2 },
+//            { name: "Vegan Turkey (Case of 3)", par: 2 },
+//            { name: "Vegan Ham (Case of 3)", par: 2 }
         ];
 
         const inputSection = document.getElementById('input-section');
@@ -107,18 +108,13 @@
             inventory.forEach((item, index) => {
                 const inputVal = document.getElementById(`input-${index}`).value;
                 const currentStock = parseFloat(inputVal) || 0;
-                const orderAmount = item.par - currentStock;
 
-                if (orderAmount > 0) {
-                    summaryText += `${item.name}: ${orderAmount}\n`;
-                    itemsToOrderCount++;
-                }
+				// Prevent negative order amounts
+                const orderAmount = Math.max(0, item.par - currentStock);
+
+				summaryText += `${item.name}: ${orderAmount}\n`;
+				itemsToOrderCount++;
             });
-
-            if (itemsToOrderCount === 0) {
-                alert("Everything is fully stocked! No order needed.");
-                return;
-            }
 
             displayResults(summaryText);
         }
