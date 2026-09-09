@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory Count</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#fff; --ink:#1f2430; --muted:#6b7280;
+    --line:#e5e7eb; --accent:#2563eb; --add:#16a34a; --remove:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);min-height:100vh;}
+  .wrap{max-width:640px;margin:0 auto;padding:32px 16px 64px;}
+  header h1{font-size:24px;margin:0 0 4px;}
+  header p{margin:0 0 20px;color:var(--muted);font-size:14px;}
+  .total{font-size:13px;color:var(--muted);margin-bottom:12px;}
+  .total b{color:var(--ink);font-variant-numeric:tabular-nums;}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(16,24,40,.04);}
+  .item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .item-name{font-weight:600;font-size:15px;}
+  .count{font-variant-numeric:tabular-nums;font-size:26px;font-weight:700;
+         min-width:72px;text-align:right;transition:color .3s ease;}
+  .count.bump{animation:bump .3s ease;}
+  @keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .count.up{color:var(--add)} .count.down{color:var(--remove)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;}
+  .controls input{width:88px;padding:8px 10px;font-size:15px;font:inherit;
+        border:1px solid var(--line);border-radius:8px;text-align:center;
+        font-variant-numeric:tabular-nums;}
+  .controls input:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent);}
+  .controls input.shake{animation:shake .3s ease;border-color:var(--remove);}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid transparent;
+         padding:8px 12px;font-size:14px;font-weight:600;transition:background .15s ease;}
+  button:active{transform:translateY(1px);}
+  .btn-add{background:#ecfdf5;color:#166534;border-color:#dcfce7;}
+  .btn-add:hover{background:#dcfce7;}
+  .btn-remove{background:#fef2f2;color:#991b1b;border-color:#fee2e2;}
+  .btn-remove:hover{background:#fee2e2;}
+  .finish{display:block;width:100%;margin-top:24px;padding:14px;font-size:16px;
+          background:#111827;color:#fff;border-radius:12px;}
+  .finish:hover{background:#1f2937;}
+  .final{background:var(--card);border:1px solid var(--line);border-radius:14px;
+         padding:20px;box-shadow:0 1px 2px rgba(16,24,40,.04);}
+  .final h2{margin:0 0 12px;font-size:18px;}
+  .final ul{list-style:none;margin:0 0 16px;padding:0;}
+  .final li{display:flex;justify-content:space-between;padding:10px 0;
+            border-bottom:1px solid var(--line);font-size:15px;}
+  .final li:last-child{border-bottom:none;}
+  .final li span:last-child{font-weight:700;font-variant-numeric:tabular-nums;}
+  .copy-btn{width:100%;padding:11px;font-size:15px;background:#eef2ff;color:#3730a3;border-color:#e0e7ff;}
+  .copy-btn.copied{background:#ecfdf5;color:#166534;border-color:#dcfce7;}
+  .back{display:block;margin:14px auto 0;background:none;border:none;color:var(--muted);
+        font-size:13px;font-weight:500;text-decoration:underline;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Inventory Count</h1>
+    <p>Type a number, then pick an action: <b>+ Add</b> and <b>&minus; Remove</b> adjust by that number.</p>
+  </header>
+
+  <div id="editor">
+    <div class="total">Total units on hand: <b id="total">0</b></div>
+    <!-- item rows are injected here, above the finish button -->
+    <button class="finish" id="finishBtn">Finish Counting</button>
+  </div>
+
+  <div id="final" class="hidden">
+    <div class="final">
+      <h2>Final Counts</h2>
+      <ul id="finalList"></ul>
+      <button class="copy-btn" id="copyBtn">Copy to Clipboard</button>
+      <button class="back" id="backBtn">&larr; Back to editing</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ITEMS = ["Soda Cans","Bread Rolls","Candy Bars","Chip Bags","Water Bottles"];
+  const state = ITEMS.map(name => ({name, count: 0}));
+  const rows  = [];
+
+  const editor    = document.getElementById('editor');
+  const finishBtn = document.getElementById('finishBtn');
+  const finalView = document.getElementById('final');
+  const finalList = document.getElementById('finalList');
+  const copyBtn   = document.getElementById('copyBtn');
+  const backBtn   = document.getElementById('backBtn');
+  const totalEl   = document.getElementById('total');
+
+  // Build one row per item
+  state.forEach((item, i) => {
+    const row = document.createElement('div');
+    row.className = 'item';
+    row.innerHTML = `
+      <div class="item-top">
+        <span class="item-name"></span>
+        <span class="count">0</span>
+      </div>
+      <div class="controls">
+        <input type="number" min="0" step="1" inputmode="numeric"
+               placeholder="Amount" aria-label="Amount for ${item.name}">
+        <button class="btn-add">+ Add</button>
+        <button class="btn-remove">&minus; Remove</button>
+      </div>`;
+    row.querySelector('.item-name').textContent = item.name;
+    const input  = row.querySelector('input');
+    const countEl = row.querySelector('.count');
+    rows.push({input, countEl});
+
+    const adjust = dir => {
+      const raw = input.value.trim();
+      const amt = raw === '' ? 0 : Math.round(Number(raw));
+      if (!Number.isFinite(amt) || amt < 1) return nudge(input);
+      setCount(i, Math.max(0, state[i].count + dir * amt), dir > 0 ? 'up' : 'down');
+      input.value = '';
+    };
+
+    row.querySelector('.btn-add').addEventListener('click', () => adjust(1));
+    row.querySelector('.btn-remove').addEventListener('click', () => adjust(-1));
+
+    editor.insertBefore(row, finishBtn);
+  });
+
+  function nudge(input){
+    input.classList.remove('shake');
+    void input.offsetWidth;
+    input.classList.add('shake');
+    input.focus();
+  }
+
+  function setCount(i, value, flash){
+    state[i].count = value;
+    const {countEl} = rows[i];
+    countEl.textContent = value.toLocaleString();
+    countEl.classList.remove('bump','up','down');
+    void countEl.offsetWidth;
+    countEl.classList.add('bump');
+    if (flash) {
+      countEl.classList.add(flash);
+      clearTimeout(countEl._t);
+      countEl._t = setTimeout(() => countEl.classList.remove('up','down'), 900);
+    }
+    totalEl.textContent = state.reduce((s,x) => s + x.count, 0).toLocaleString();
+  }
+
+  // Finish: swap to a read-only list
+  finishBtn.addEventListener('click', () => {
+    finalList.innerHTML = '';
+    state.forEach(item => {
+      const li = document.createElement('li');
+      const n  = document.createElement('span'); n.textContent = item.name;
+      const v  = document.createElement('span'); v.textContent = item.count.toLocaleString();
+      li.append(n, v);
+      finalList.appendChild(li);
+    });
+    editor.classList.add('hidden');
+    finalView.classList.remove('hidden');
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  // Copy to clipboard (with fallback for older browsers)
+  copyBtn.addEventListener('click', async () => {
+    const text = state.map(i => `${i.name}: ${i.count}`).join('\n');
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+    }
+    copyBtn.textContent = '\u2713 Copied to Clipboard';
+    copyBtn.classList.add('copied');
+    setTimeout(() => { copyBtn.textContent = 'Copy to Clipboard'; copyBtn.classList.remove('copied'); }, 1600);
+  });
+
+  // Back to editing keeps all current counts
+  backBtn.addEventListener('click', () => {
+    finalView.classList.add('hidden');
+    editor.classList.remove('hidden');
+  });
+</script>
+</body>
+</html>
