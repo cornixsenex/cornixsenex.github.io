@@ -76,14 +76,30 @@
       <h2>Final Counts</h2>
       <ul id="finalList"></ul>
       <button class="copy-btn" id="copyBtn">Copy to Clipboard</button>
+	  <button class="copy-btn" id="resetBtn" style="margin-top: 10px; background: #fef2f2; color: #991b1b; border-color: #fee2e2;">Start New Count</button>
       <button class="back" id="backBtn">&larr; Back to editing</button>
     </div>
   </div>
 </div>
 
 <script>
+  const STORAGE_KEY = 'vibe_inventory_state_v1';
   const ITEMS = ["Soda Cans","Bread Rolls","Candy Bars","Chip Bags","Water Bottles"];
-  const state = ITEMS.map(name => ({name, count: 0}));
+
+  // Load state from localStorage if it exists
+  const savedData = localStorage.getItem(STORAGE_KEY);
+  let initialCounts = null;
+  try {
+    initialCounts = savedData ? JSON.parse(savedData) : null;
+  } catch (e) {
+    console.error('Failed to parse saved inventory state', e);
+  }
+
+  const state = ITEMS.map(name => {
+    const found = initialCounts?.find(item => item.name === name);
+    return { name, count: found && typeof found.count === 'number' ? found.count : 0 };
+  });
+
   const rows  = [];
 
   const editor    = document.getElementById('editor');
@@ -91,8 +107,12 @@
   const finalView = document.getElementById('final');
   const finalList = document.getElementById('finalList');
   const copyBtn   = document.getElementById('copyBtn');
+  const resetBtn  = document.getElementById('resetBtn');
   const backBtn   = document.getElementById('backBtn');
   const totalEl   = document.getElementById('total');
+
+  // Set initial total UI on load
+  totalEl.textContent = state.reduce((s,x) => s + x.count, 0).toLocaleString();
 
   // Build one row per item
   state.forEach((item, i) => {
@@ -101,7 +121,7 @@
     row.innerHTML = `
       <div class="item-top">
         <span class="item-name"></span>
-        <span class="count">0</span>
+        <span class="count">${item.count.toLocaleString()}</span>
       </div>
       <div class="controls">
         <input type="number" min="0" step="1" inputmode="numeric"
@@ -148,6 +168,13 @@
       countEl._t = setTimeout(() => countEl.classList.remove('up','down'), 900);
     }
     totalEl.textContent = state.reduce((s,x) => s + x.count, 0).toLocaleString();
+
+    // Save changes immediately to localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.error('Failed to save inventory state', e);
+    }
   }
 
   // Finish: swap to a read-only list
@@ -178,6 +205,29 @@
     copyBtn.textContent = '\u2713 Copied to Clipboard';
     copyBtn.classList.add('copied');
     setTimeout(() => { copyBtn.textContent = 'Copy to Clipboard'; copyBtn.classList.remove('copied'); }, 1600);
+  });
+
+  // Reset functionality with confirmation prompt
+  resetBtn.addEventListener('click', () => {
+    if (confirm('Are you sure you want to clear all counts and start a new inventory?')) {
+      // Clear localStorage
+      localStorage.removeItem(STORAGE_KEY);
+
+      // Reset state array
+      state.forEach((item, i) => {
+        state[i].count = 0;
+        rows[i].countEl.textContent = '0';
+        rows[i].input.value = '';
+      });
+
+      // Update total banner
+      totalEl.textContent = '0';
+
+      // Switch back to the editor view
+      finalView.classList.add('hidden');
+      editor.classList.remove('hidden');
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    }
   });
 
   // Back to editing keeps all current counts
