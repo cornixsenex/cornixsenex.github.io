@@ -56,6 +56,14 @@
   .back{display:block;margin:14px auto 0;background:none;border:none;color:var(--muted);
         font-size:13px;font-weight:500;text-decoration:underline;}
   .hidden{display:none;}
+  input[type=number]::-webkit-inner-spin-button, 
+  input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
 </style>
 </head>
 <body>
@@ -84,7 +92,23 @@
 
 <script>
   const STORAGE_KEY = 'vibe_inventory_state_v1';
-  const ITEMS = ["Soda Cans","Bread Rolls","Candy Bars","Chip Bags","Water Bottles"];
+  
+  const ITEMS = [
+	  { name: "Soda Cans",     type: "unit"},
+	  { name: "Bread Rolls",   type: "unit"},
+	  { name: "Candy Bars",    type: "unit"},
+	  { name: "Chips Bags",    type: "unit"},
+	  { name: "Water Bottles", type: "unit"},
+	  { name: "Turkey",        type: "weight", unit: "lb" }
+  ];
+
+  const CONTAINERS = [
+  { name: "None / No Container", tare: 0 },
+  { name: "Tall Green Cambro", tare: 0.95 },
+  { name: "Short Green Cambro", tare: 0.65 },
+  { name: "Red Cambro", tare: 1.50 },
+  { name: "6 Pan", tare: 0.80 }
+];
 
   // Load state from localStorage if it exists
   const savedData = localStorage.getItem(STORAGE_KEY);
@@ -95,9 +119,14 @@
     console.error('Failed to parse saved inventory state', e);
   }
 
-  const state = ITEMS.map(name => {
-    const found = initialCounts?.find(item => item.name === name);
-    return { name, count: found && typeof found.count === 'number' ? found.count : 0 };
+  const state = ITEMS.map(item => {
+    const found = initialCounts?.find(saved => saved.name === item.name);
+    return { 
+      name: item.name, 
+      type: item.type,
+      unit: item.unit || 'units',
+      count: found && typeof found.count === 'number' ? found.count : 0 
+    };
   });
 
   const rows  = [];
@@ -118,36 +147,62 @@
   state.forEach((item, i) => {
     const row = document.createElement('div');
     row.className = 'item';
+    
+    let extraHtml = '';
+    if (item.type === 'weight') {
+      const optionsHtml = CONTAINERS.map(c => 
+        `<option value="${c.tare}">${c.name} (${c.tare} lbs)</option>`
+      ).join('');
+      
+      extraHtml = `<div style="margin-top: 8px; font-size: 13px; color: var(--muted);">Container: <select class="container-select" style="padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); font: inherit; font-size: 13px;">${optionsHtml}</select></div>`;
+    }
+  
     row.innerHTML = `
       <div class="item-top">
         <span class="item-name"></span>
         <span class="count">${item.count.toLocaleString()}</span>
       </div>
       <div class="controls">
-        <input type="number" min="0" step="1" inputmode="numeric"
-               placeholder="Amount" aria-label="Amount for ${item.name}">
+        <input type="number" min="0" step="${item.type === 'weight' ? '0.1' : '1'}" inputmode="decimal"
+                placeholder="${item.type === 'weight' ? 'Weight' : 'Amount'}" aria-label="Amount for ${item.name}">
         <button class="btn-add">+ Add</button>
         <button class="btn-remove">&minus; Remove</button>
-      </div>`;
+      </div>
+      ${extraHtml}`;
+      
     row.querySelector('.item-name').textContent = item.name;
     const input  = row.querySelector('input');
     const countEl = row.querySelector('.count');
-    rows.push({input, countEl});
-
+    const containerSelect = row.querySelector('.container-select');
+    rows.push({input, countEl, containerSelect});
+  
     const adjust = dir => {
       const raw = input.value.trim();
-      const amt = raw === '' ? 0 : Math.round(Number(raw));
-      if (!Number.isFinite(amt) || amt < 1) return nudge(input);
-      setCount(i, Math.max(0, state[i].count + dir * amt), dir > 0 ? 'up' : 'down');
+      const num = raw === '' ? 0 : Number(raw);
+      
+      // Validate that it's a real positive number
+      if (!Number.isFinite(num) || num <= 0) return nudge(input);
+  
+      let amountToAddOrRemove = num;
+  
+      if (item.type === 'weight' && containerSelect) {
+        const tareWeight = Number(containerSelect.value) || 0;
+        // Subtract tare from gross scale weight, making sure it doesn't drop below 0
+        amountToAddOrRemove = Math.max(0, num - tareWeight);
+      } else {
+        // For whole units, ensure it's a rounded integer
+        amountToAddOrRemove = Math.round(num);
+      }
+  
+      setCount(i, Math.max(0, state[i].count + dir * amountToAddOrRemove), dir > 0 ? 'up' : 'down');
       input.value = '';
     };
 
-    row.querySelector('.btn-add').addEventListener('click', () => adjust(1));
-    row.querySelector('.btn-remove').addEventListener('click', () => adjust(-1));
+  row.querySelector('.btn-add').addEventListener('click', () => adjust(1));
+  row.querySelector('.btn-remove').addEventListener('click', () => adjust(-1));
 
-    editor.insertBefore(row, finishBtn);
-  });
-
+  editor.insertBefore(row, finishBtn);
+});
   function nudge(input){
     input.classList.remove('shake');
     void input.offsetWidth;
