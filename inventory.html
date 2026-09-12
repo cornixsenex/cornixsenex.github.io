@@ -74,7 +74,7 @@ input[type=number] {
   </header>
 
   <div id="editor">
-    <div class="total">Total units on hand: <b id="total">0</b></div>
+    <div class="total"><b id="total"></b></div>
     <!-- item rows are injected here, above the finish button -->
     <button class="finish" id="finishBtn">Finish Counting</button>
   </div>
@@ -139,9 +139,6 @@ input[type=number] {
   const resetBtn  = document.getElementById('resetBtn');
   const backBtn   = document.getElementById('backBtn');
   const totalEl   = document.getElementById('total');
-
-  // Set initial total UI on load
-  totalEl.textContent = state.reduce((s,x) => s + x.count, 0).toLocaleString();
 
   // Build one row per item
   state.forEach((item, i) => {
@@ -222,7 +219,6 @@ input[type=number] {
       clearTimeout(countEl._t);
       countEl._t = setTimeout(() => countEl.classList.remove('up','down'), 900);
     }
-    totalEl.textContent = state.reduce((s,x) => s + x.count, 0).toLocaleString();
 
     // Save changes immediately to localStorage
     try {
@@ -274,9 +270,6 @@ input[type=number] {
         rows[i].countEl.textContent = '0';
         rows[i].input.value = '';
       });
-
-      // Update total banner
-      totalEl.textContent = '0';
 
       // Switch back to the editor view
       finalView.classList.add('hidden');
