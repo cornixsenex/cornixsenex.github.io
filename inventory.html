@@ -64,6 +64,13 @@
 input[type=number] {
   -moz-appearance: textfield;
 }
+  /* Search Bar */
+  .search-bar{position:sticky;top:0;z-index:20;background:var(--bg);padding:4px 0 16px;margin-bottom:4px;}
+  .search-bar input{width:100%;padding:10px 14px;font-size:15px;font:inherit;
+        border:1px solid var(--line);border-radius:10px;background:var(--card);
+        box-shadow:0 1px 2px rgba(16,24,40,.04);}
+  .search-bar input:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent);}
+  .item.highlight{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,0.2);transition:box-shadow .3s ease, border-color .3s ease;}
 </style>
 </head>
 <body>
@@ -74,7 +81,10 @@ input[type=number] {
   </header>
 
   <div id="editor">
-    <div class="total"><b id="total"></b></div>
+  <div class="search-bar">
+    <input type="search" id="searchInput" placeholder="🔍 Jump to item..." aria-label="Jump to item">
+  </div>
+  <div class="total"><b id="total"></b></div>
     <!-- item rows are injected here, above the finish button -->
     <button class="finish" id="finishBtn">Finish Counting</button>
   </div>
@@ -92,14 +102,39 @@ input[type=number] {
 
 <script>
   const STORAGE_KEY = 'vibe_inventory_state_v1';
-  
-  const ITEMS = [
-	  { name: "Soda Cans",     type: "unit"},
-	  { name: "Bread Rolls",   type: "unit"},
-	  { name: "Candy Bars",    type: "unit"},
-	  { name: "Chips Bags",    type: "unit"},
-	  { name: "Water Bottles", type: "unit"},
-	  { name: "Turkey",        type: "weight", unit: "lb" }
+ 
+
+  //Sodas, Beer and Wine, Candies, Chips, Sauces, Veggies, Meats, Cheese, Bread
+
+
+const ITEMS = [
+      // Sodas
+      { name: "Coke",        category: "Sodas", type: "unit" },
+      { name: "Diet Coke",   category: "Sodas", type: "unit" },
+      // Beer and Wine
+      { name: "PBR",         category: "Beer and Wine", type: "unit" },
+      { name: "IPA",         category: "Beer and Wine", type: "unit" },
+      // Candies
+      { name: "Hersheys",    category: "Candies", type: "unit" },
+      { name: "Snickers",    category: "Candies", type: "unit" },
+      // Chips
+      { name: "Salt and Vinegar", category: "Chips", type: "unit" },
+      { name: "Jalapeno",         category: "Chips", type: "unit" },
+      // Sauces
+      { name: "Mayo",        category: "Sauces", type: "weight", unit: "oz" },
+      { name: "BBQ",         category: "Sauces", type: "weight", unit: "oz" },
+      // Veggies
+      { name: "Tomato",      category: "Veggies", type: "weight", unit: "lb" },
+      { name: "Lettuce",     category: "Veggies", type: "weight", unit: "lb" },
+      // Meats
+      { name: "Turkey",      category: "Meats", type: "weight", unit: "lb" },
+      { name: "Ham",         category: "Meats", type: "weight", unit: "lb" },
+      // Cheese
+      { name: "Swiss",       category: "Cheese", type: "weight", unit: "lb" },
+      { name: "Jack",        category: "Cheese", type: "weight", unit: "lb" },
+      // Bread
+      { name: "Wheat",       category: "Bread", type: "unit" },
+      { name: "Rye",         category: "Bread", type: "unit" }
   ];
 
   const CONTAINERS = [
@@ -125,6 +160,7 @@ input[type=number] {
       name: item.name, 
       type: item.type,
       unit: item.unit || 'units',
+	  category: item.category,
       count: found && typeof found.count === 'number' ? found.count : 0 
     };
   });
@@ -140,8 +176,17 @@ input[type=number] {
   const backBtn   = document.getElementById('backBtn');
   const totalEl   = document.getElementById('total');
 
-  // Build one row per item
+  // Build one row per item with category section headers
+  let lastCategory = '';
   state.forEach((item, i) => {
+    if (item.category !== lastCategory) {
+      lastCategory = item.category;
+      const header = document.createElement('div');
+      header.style.cssText = 'font-weight:700; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin:24px 0 8px 4px;';
+      header.textContent = lastCategory;
+      editor.insertBefore(header, finishBtn);
+    }
+
     const row = document.createElement('div');
     row.className = 'item';
     
@@ -171,23 +216,20 @@ input[type=number] {
     const input  = row.querySelector('input');
     const countEl = row.querySelector('.count');
     const containerSelect = row.querySelector('.container-select');
-    rows.push({input, countEl, containerSelect});
+    rows.push({input, countEl, containerSelect, row});
   
     const adjust = dir => {
       const raw = input.value.trim();
       const num = raw === '' ? 0 : Number(raw);
       
-      // Validate that it's a real positive number
       if (!Number.isFinite(num) || num <= 0) return nudge(input);
   
       let amountToAddOrRemove = num;
   
       if (item.type === 'weight' && containerSelect) {
         const tareWeight = Number(containerSelect.value) || 0;
-        // Subtract tare from gross scale weight, making sure it doesn't drop below 0
         amountToAddOrRemove = Math.max(0, num - tareWeight);
       } else {
-        // For whole units, ensure it's a rounded integer
         amountToAddOrRemove = Math.round(num);
       }
   
@@ -195,11 +237,11 @@ input[type=number] {
       input.value = '';
     };
 
-  row.querySelector('.btn-add').addEventListener('click', () => adjust(1));
-  row.querySelector('.btn-remove').addEventListener('click', () => adjust(-1));
+    row.querySelector('.btn-add').addEventListener('click', () => adjust(1));
+    row.querySelector('.btn-remove').addEventListener('click', () => adjust(-1));
 
-  editor.insertBefore(row, finishBtn);
-});
+    editor.insertBefore(row, finishBtn);
+  });
   function nudge(input){
     input.classList.remove('shake');
     void input.offsetWidth;
@@ -282,6 +324,22 @@ input[type=number] {
   backBtn.addEventListener('click', () => {
     finalView.classList.add('hidden');
     editor.classList.remove('hidden');
+  });
+
+  // Search / Jump functionality
+  const searchInput = document.getElementById('searchInput');
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.toLowerCase().trim();
+    if (!query) return;
+
+    const foundIndex = state.findIndex(item => item.name.toLowerCase().includes(query));
+    if (foundIndex !== -1) {
+      const targetRow = rows[foundIndex].row;
+      targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      targetRow.classList.add('highlight');
+      clearTimeout(targetRow._ht);
+      targetRow._ht = setTimeout(() => targetRow.classList.remove('highlight'), 1500);
+    }
   });
 </script>
 </body>
