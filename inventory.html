@@ -66,10 +66,14 @@ input[type=number] {
 }
   /* Search Bar */
   .search-bar{position:sticky;top:0;z-index:20;background:var(--bg);padding:4px 0 16px;margin-bottom:4px;}
-  .search-bar input{width:100%;padding:10px 14px;font-size:15px;font:inherit;
+  .search-input-wrap{position:relative;display:flex;align-items:center;}
+  .search-bar input{width:100%;padding:10px 90px 10px 14px;font-size:15px;font:inherit;
         border:1px solid var(--line);border-radius:10px;background:var(--card);
         box-shadow:0 1px 2px rgba(16,24,40,.04);}
   .search-bar input:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent);}
+  .search-count{position:absolute;right:72px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;pointer-events:none;}
+  .search-next-btn{position:absolute;right:4px;background:var(--accent);color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600;}
+  .search-next-btn.hidden, .search-count.hidden{display:none;}
   .item.highlight{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,0.2);transition:box-shadow .3s ease, border-color .3s ease;}
 </style>
 </head>
@@ -82,7 +86,11 @@ input[type=number] {
 
   <div id="editor">
   <div class="search-bar">
-    <input type="search" id="searchInput" placeholder="🔍 Jump to item..." aria-label="Jump to item">
+    <div class="search-input-wrap">
+      <input type="search" id="searchInput" placeholder="🔍 Jump to item..." aria-label="Jump to item">
+      <span id="searchCount" class="search-count hidden">0/0</span>
+      <button type="button" id="nextMatchBtn" class="search-next-btn hidden" aria-label="Next match">Next &darr;</button>
+    </div>
   </div>
   <div class="total"><b id="total"></b></div>
     <!-- item rows are injected here, above the finish button -->
@@ -104,37 +112,221 @@ input[type=number] {
   const STORAGE_KEY = 'vibe_inventory_state_v1';
  
 
-  //Sodas, Beer and Wine, Candies, Chips, Sauces, Veggies, Meats, Cheese, Bread
+  //Beverages, Beer and Wine, Candies, Chips, Sauces, Veggies, Meats, Cheese, Bread
 
 
 const ITEMS = [
-      // Sodas
-      { name: "Coke",        category: "Sodas", type: "unit" },
-      { name: "Diet Coke",   category: "Sodas", type: "unit" },
+      // Beverages
+      { name: "Americana - Orance Creme",       category: "Beverages", type: "unit" },
+      { name: "Americana - Black Cherry",       category: "Beverages", type: "unit" },
+      { name: "Americana - Huckleberry",        category: "Beverages", type: "unit" },
+      { name: "Americana - Honey Creme",        category: "Beverages", type: "unit" },
+      { name: "Americana - Root Beer",          category: "Beverages", type: "unit" },
+      { name: "Bazooka Bubble Gum",             category: "Beverages", type: "unit" },
+      { name: "Boylan - Black Cherry",          category: "Beverages", type: "unit" },
+      { name: "Boylan - Birch Beer",            category: "Beverages", type: "unit" },
+      { name: "Boylan - Cane Cola",             category: "Beverages", type: "unit" },
+      { name: "Boylan - Creamy Red Birch Beer", category: "Beverages", type: "unit" },
+      { name: "Boylan - Creme",                 category: "Beverages", type: "unit" },
+      { name: "Boylan - Diet Cola",             category: "Beverages", type: "unit" },
+      { name: "Boylan - Diet Creme Soda",       category: "Beverages", type: "unit" },
+      { name: "Boylan - Diet Root Beer",        category: "Beverages", type: "unit" },
+      { name: "Boylan - Dr. Boylan",            category: "Beverages", type: "unit" },
+      { name: "Boylan - Ginger Ale",            category: "Beverages", type: "unit" },
+      { name: "Boylan - Grape Soda",            category: "Beverages", type: "unit" },
+      { name: "Boylan - Orange Soda",           category: "Beverages", type: "unit" },
+      { name: "Boylan - Root Beer",             category: "Beverages", type: "unit" },
+      { name: "Boylan - Shirley Temple",        category: "Beverages", type: "unit" },
+      { name: "Boylan - Sparkling Lemonade",    category: "Beverages", type: "unit" },
+      { name: "Bubble Up",                      category: "Beverages", type: "unit" },
+      { name: "Diet Coke",                      category: "Beverages", type: "unit" },
+      { name: "Coke",                           category: "Beverages", type: "unit" },
+      { name: "Sprite",                         category: "Beverages", type: "unit" },
+      { name: "Dr. Pepper",                     category: "Beverages", type: "unit" },
+      { name: "Dublin - Cola",                  category: "Beverages", type: "unit" },
+      { name: "Dublin - Root Beer",             category: "Beverages", type: "unit" },
+      { name: "Dublin - Grape Soda",            category: "Beverages", type: "unit" },
+      { name: "Faygo - Orange Soda",            category: "Beverages", type: "unit" },
+      { name: "Faygo - Root Beer",              category: "Beverages", type: "unit" },
+      { name: "Faygo - Rock & Rye",             category: "Beverages", type: "unit" },
+      { name: "Fentimans - Cherry Cola",        category: "Beverages", type: "unit" },
+      { name: "Fentimans - Curiosity Cola",     category: "Beverages", type: "unit" },
+      { name: "Fentimans - Ginger Beer",        category: "Beverages", type: "unit" },
+      { name: "Fentimans - Rose Lemonade",      category: "Beverages", type: "unit" },
+      { name: "Fentimans - Victorian Lemonade", category: "Beverages", type: "unit" },
+      { name: "Moxie",                          category: "Beverages", type: "unit" },
+      { name: "Crystal Gyser",                  category: "Beverages", type: "unit" },
+      { name: "Saratoga - Sparkling",           category: "Beverages", type: "unit" },
+      { name: "Saratoga - Still",               category: "Beverages", type: "unit" },
+      { name: "Zotts - Watermelon",             category: "Beverages", type: "unit" },
+      { name: "Zotts - Sour Cherry",            category: "Beverages", type: "unit" },
+      { name: "Zotts - Blue Raspberry",         category: "Beverages", type: "unit" },
+      { name: "Lester's Pickle Soda",           category: "Beverages", type: "unit" },
+      { name: "C.Howards - Guava",              category: "Beverages", type: "unit" },
+      { name: "C.Howards - Lemon",              category: "Beverages", type: "unit" },
+      { name: "Wildwonder - Guava Rose",        category: "Beverages", type: "unit" },
+      { name: "Wildwonder - Cherry Lemonade",   category: "Beverages", type: "unit" },
+      { name: "Wildwonder - Raspberry Lyche",   category: "Beverages", type: "unit" },
       // Beer and Wine
-      { name: "PBR",         category: "Beer and Wine", type: "unit" },
-      { name: "IPA",         category: "Beer and Wine", type: "unit" },
+      { name: "Fort Point - KSA (Non-Alc)", category: "Beer and Wine", type: "unit" },
+      { name: "Fort Point - KSA",           category: "Beer and Wine", type: "unit" },
+      { name: "Fort Point - VILLAGER",      category: "Beer and Wine", type: "unit" },
+      { name: "Fort Point - WESTFALIA",     category: "Beer and Wine", type: "unit" },
+      { name: "Maker - White Blend",        category: "Beer and Wine", type: "unit" },
+      { name: "Maker - Chard",              category: "Beer and Wine", type: "unit" },
+      { name: "Maker - Sparkling Rose",     category: "Beer and Wine", type: "unit" },
+      { name: "Maker - Red Blend",          category: "Beer and Wine", type: "unit" },
+      { name: "Otherwise - West Coast",     category: "Beer and Wine", type: "unit" },
+      { name: "Otherwise - Cali Crisp",     category: "Beer and Wine", type: "unit" },
       // Candies
-      { name: "Hersheys",    category: "Candies", type: "unit" },
-      { name: "Snickers",    category: "Candies", type: "unit" },
+      { name: "Beemans (20 pcs)",                       category: "Candies", type: "unit" },
+      { name: "Big Cherry",                             category: "Candies", type: "unit" },
+      { name: "Bit O Honey",                            category: "Candies", type: "unit" },
+      { name: "Black Cow",                              category: "Candies", type: "unit" },
+      { name: "Black Jack",                             category: "Candies", type: "unit" },
+      { name: "Bonomo Taffy - Banana",                  category: "Candies", type: "unit" },
+      { name: "Bonomo Taffy - Chocolate",               category: "Candies", type: "unit" },
+      { name: "Bonomo Taffy - Strawberry",              category: "Candies", type: "unit" },
+      { name: "Boston Baked Beans",                     category: "Candies", type: "unit" },
+      { name: "Boyer Jimmie Stix",                      category: "Candies", type: "unit" },
+      { name: "Boyer Peanut Butter Cup",                category: "Candies", type: "unit" },
+      { name: "C. Howards - Guava",                     category: "Candies", type: "unit" },
+      { name: "C. Howards - Lemon",                     category: "Candies", type: "unit" },
+      { name: "C. Howards - Peppermint",                category: "Candies", type: "unit" },
+      { name: "C. Howards - Spearmint",                 category: "Candies", type: "unit" },
+      { name: "C. Howards - Violet Gum",                category: "Candies", type: "unit" },
+      { name: "C. Howards - Vilet Mints",               category: "Candies", type: "unit" },
+      { name: "Candy Cigs",                             category: "Candies", type: "unit" },
+      { name: "Chick-O-Sticks",                         category: "Candies", type: "unit" },
+      { name: "Citrus Delights - Meyer Lemon",          category: "Candies", type: "unit" },
+      { name: "Citrus Delights - Seville Orange",       category: "Candies", type: "unit" },
+      { name: "Claeys - Cinnamon",                      category: "Candies", type: "unit" },
+      { name: "Claeys - Green Apple",                   category: "Candies", type: "unit" },
+      { name: "Claeys - Horehound",                     category: "Candies", type: "unit" },
+      { name: "Claeys - Lemon Drop",                    category: "Candies", type: "unit" },
+      { name: "Claeys - Licorice",                      category: "Candies", type: "unit" },
+      { name: "Claeys - Raspberry",                     category: "Candies", type: "unit" },
+      { name: "Claeys - Root Beer",                     category: "Candies", type: "unit" },
+      { name: "Claeys - Sassafras",                     category: "Candies", type: "unit" },
+      { name: "Claeys - Watermelon",                    category: "Candies", type: "unit" },
+      { name: "Claeys - Wild Cherry",                   category: "Candies", type: "unit" },
+      { name: "Clove (20 pcs)",                         category: "Candies", type: "unit" },
+      { name: "Cow Tales - Caramel Appel",              category: "Candies", type: "unit" },
+      { name: "Cow Tales - Caramel Brownie",            category: "Candies", type: "unit" },
+      { name: "Cow Tales - Honey Bun",                  category: "Candies", type: "unit" },
+      { name: "Cow Tales - Strawberry",                 category: "Candies", type: "unit" },
+      { name: "Cow Tales - Vanilla (Caramel)",          category: "Candies", type: "unit" },
+      { name: "Hammonds - PBJ",                         category: "Candies", type: "unit" },
+      { name: "Hammonds - Cookies & Creme",             category: "Candies", type: "unit" },
+      { name: "Hammonds - Lemon",                       category: "Candies", type: "unit" },
+      { name: "Hammonds - Pigs N Taters",               category: "Candies", type: "unit" },
+      { name: "Hammonds - Sea Side Caramel",            category: "Candies", type: "unit" },
+      { name: "Hammonds - Toffee",                      category: "Candies", type: "unit" },
+      { name: "Hammonds - Coconut",                     category: "Candies", type: "unit" },
+      { name: "Hammonds - Cookie Dough",                category: "Candies", type: "unit" },
+      { name: "Hammonds - Mint Chip",                   category: "Candies", type: "unit" },
+      { name: "Hammonds - Peanut Butter",               category: "Candies", type: "unit" },
+      { name: "Hammonds - Smores",                      category: "Candies", type: "unit" },
+      { name: "Hersheys - Milk",                        category: "Candies", type: "unit" },
+      { name: "Hersheys - Almond",                      category: "Candies", type: "unit" },
+      { name: "Idaho Spud",                             category: "Candies", type: "unit" },
+      { name: "Jelly Belly",                            category: "Candies", type: "unit" },
+      { name: "Jelly Belly Sour",                       category: "Candies", type: "unit" },
+      { name: "Jelly Belly Beanboozled",                category: "Candies", type: "unit" },
+      { name: "Lemonheads",                             category: "Candies", type: "unit" },
+      { name: "Lifesavers",                             category: "Candies", type: "unit" },
+      { name: "Long Boys Coconut Bar",                  category: "Candies", type: "unit" },
+      { name: "Necco Wafers OG",                        category: "Candies", type: "unit" },
+      { name: "Necco Waferes Chocolate",                category: "Candies", type: "unit" },
+      { name: "Riffs Bacon",                            category: "Candies", type: "unit" },
+      { name: "Rock Candy - Black (Black Cherry)",      category: "Candies", type: "unit" },
+      { name: "Rock Candy - Blue (Blue Raspberry)",     category: "Candies", type: "unit" },
+      { name: "Rock Candy - Brown (Root Beer)",         category: "Candies", type: "unit" },
+      { name: "Rock Candy - Green (Green Apple)",       category: "Candies", type: "unit" },
+      { name: "Rock Candy - Light Blue (Cotton Candy)", category: "Candies", type: "unit" },
+      { name: "Rock Candy - Light Green (Watermelon)",  category: "Candies", type: "unit" },
+      { name: "Rock Candy - Orange (Orange)",           category: "Candies", type: "unit" },
+      { name: "Rock Candy - Pink (Cherry)",             category: "Candies", type: "unit" },
+      { name: "Rock Candy - Purple (Grape)",            category: "Candies", type: "unit" },
+      { name: "Rock Candy - Red (Strawberry)",          category: "Candies", type: "unit" },
+      { name: "Rock Candy - White (Plain)",             category: "Candies", type: "unit" },
+      { name: "Rock Candy - Yellow (Banana)",           category: "Candies", type: "unit" },
+      { name: "Salt Water Taffy",                       category: "Candies", type: "unit" },
+      { name: "Stick Candy - Apple",                    category: "Candies", type: "unit" },
+      { name: "Stick Candy - Banana",                   category: "Candies", type: "unit" },
+      { name: "Stick Candy - Birthday Cake",            category: "Candies", type: "unit" },
+      { name: "Stick Candy - Blueberry",                category: "Candies", type: "unit" },
+      { name: "Stick Candy - Bubblegum",                category: "Candies", type: "unit" },
+      { name: "Stick Candy - Butterscotch",             category: "Candies", type: "unit" },
+      { name: "Stick Candy - Cherry",                   category: "Candies", type: "unit" },
+      { name: "Stick Candy - Cinnamon",                 category: "Candies", type: "unit" },
+      { name: "Stick Candy - Cotton Candy",             category: "Candies", type: "unit" },
+      { name: "Stick Candy - Grape",                    category: "Candies", type: "unit" },
+      { name: "Stick Candy - Lemon",                    category: "Candies", type: "unit" },
+      { name: "Stick Candy - Orange",                   category: "Candies", type: "unit" },
+      { name: "Stick Candy - Peaches & Cream",          category: "Candies", type: "unit" },
+      { name: "Stick Candy - Pina Colada",              category: "Candies", type: "unit" },
+      { name: "Stick Candy - Root Beer",                category: "Candies", type: "unit" },
+      { name: "Stick Candy - Sour Apple",               category: "Candies", type: "unit" },
+      { name: "Stick Candy - Tutti-Fruitti",            category: "Candies", type: "unit" },
+      { name: "Stick Candy - Watermelon",               category: "Candies", type: "unit" },
+      { name: "Teaberry (20 pcs)",                      category: "Candies", type: "unit" },
       // Chips
-      { name: "Salt and Vinegar", category: "Chips", type: "unit" },
-      { name: "Jalapeno",         category: "Chips", type: "unit" },
+      { name: "Kettle - BBQ",            category: "Chips", type: "unit" },
+      { name: "Kettle - Dijon",          category: "Chips", type: "unit" },
+      { name: "Kettle - Jalapeno",       category: "Chips", type: "unit" },
+      { name: "Kettle - Sea Salt",       category: "Chips", type: "unit" },
+      { name: "Kettle - Salt & Pepper",  category: "Chips", type: "unit" },
+      { name: "Kettle - Salt & Vinegar", category: "Chips", type: "unit" },
+      { name: "Zapps - BBQ",             category: "Chips", type: "unit" },
+      { name: "Zapps - Jalapeno",        category: "Chips", type: "unit" },
+      { name: "Zapps - Original",        category: "Chips", type: "unit" },
+      { name: "Zapps - Salt & Vinegar",  category: "Chips", type: "unit" },
+      { name: "Zapps - Voodoo",          category: "Chips", type: "unit" },
+      { name: "Zapps - Voodoo Heat",     category: "Chips", type: "unit" },
       // Sauces
-      { name: "Mayo",        category: "Sauces", type: "weight", unit: "oz" },
-      { name: "BBQ",         category: "Sauces", type: "weight", unit: "oz" },
+      { name: "Olive Spread",      category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
+      { name: "Red Pepper Relish", category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
+      { name: "Avocado",           category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
+      { name: "Oscar Sauce",       category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
+      { name: "Comeback Sauce",    category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
+      { name: "Vinaigrette",       category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
+      { name: "Bacon Jam",         category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
+      { name: "BBW Mustard",       category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
+      { name: "Pesto",             category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
+      { name: "Honey Butter",      category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
+      { name: "May",               category: "Sauces (qt no tare)", type: "weight", unit: "qt" },
       // Veggies
-      { name: "Tomato",      category: "Veggies", type: "weight", unit: "lb" },
-      { name: "Lettuce",     category: "Veggies", type: "weight", unit: "lb" },
+      { name: "Arugala",     category: "Veggies", type: "weight", unit: "lb" },
+      { name: "Pickles",     category: "Veggies", type: "weight", unit: "lb" },
+      { name: "Jalapenos",   category: "Veggies", type: "weight", unit: "lb" },
+      { name: "Giardiniera", category: "Veggies", type: "weight", unit: "lb" },
+      { name: "Coleslaw",    category: "Veggies", type: "weight", unit: "lb" },
+      { name: "Saurkraut",   category: "Veggies", type: "weight", unit: "lb" },
       // Meats
-      { name: "Turkey",      category: "Meats", type: "weight", unit: "lb" },
-      { name: "Ham",         category: "Meats", type: "weight", unit: "lb" },
+      { name: "Cappy",        category: "Meats", type: "weight", unit: "lb" },
+      { name: "Salami",       category: "Meats", type: "weight", unit: "lb" },
+      { name: "Ham",          category: "Meats", type: "weight", unit: "lb" },
+      { name: "Mortadella",   category: "Meats", type: "weight", unit: "lb" },
+      { name: "Pastrami",     category: "Meats", type: "weight", unit: "lb" },
+      { name: "Bacon",        category: "Meats", type: "weight", unit: "lb" },
+      { name: "Roast Pork",   category: "Meats", type: "weight", unit: "lb" },
+      { name: "Roast Beef",   category: "Meats", type: "weight", unit: "lb" },
+      { name: "Porkstrami",   category: "Meats", type: "weight", unit: "lb" },
+      { name: "Turkey",       category: "Meats", type: "weight", unit: "lb" },
+      { name: "Vegan Ham",    category: "Meats", type: "weight", unit: "lb" },
+      { name: "Vegan Turkey", category: "Meats", type: "weight", unit: "lb" },
       // Cheese
-      { name: "Swiss",       category: "Cheese", type: "weight", unit: "lb" },
-      { name: "Jack",        category: "Cheese", type: "weight", unit: "lb" },
+      { name: "Swiss",           category: "Cheese", type: "weight", unit: "lb" },
+      { name: "Provolone",       category: "Cheese", type: "weight", unit: "lb" },
+      { name: "Pepper Jack",     category: "Cheese", type: "weight", unit: "lb" },
+      { name: "Cheddar",         category: "Cheese", type: "weight", unit: "lb" },
+      { name: "Vegan Cheddar",   category: "Cheese", type: "weight", unit: "lb" },
+      { name: "Vegan Provolone", category: "Cheese", type: "weight", unit: "lb" },
+      { name: "Gouda",           category: "Cheese", type: "weight", unit: "lb" },
       // Bread
-      { name: "Wheat",       category: "Bread", type: "unit" },
-      { name: "Rye",         category: "Bread", type: "unit" }
+      { name: "Dutch",     category: "Bread", type: "unit" },
+      { name: "Sourdough", category: "Bread", type: "unit" }
   ];
 
   const CONTAINERS = [
@@ -326,21 +518,81 @@ const ITEMS = [
     editor.classList.remove('hidden');
   });
 
-  // Search / Jump functionality
-  const searchInput = document.getElementById('searchInput');
-  searchInput.addEventListener('input', () => {
-    const query = searchInput.value.toLowerCase().trim();
-    if (!query) return;
-
-    const foundIndex = state.findIndex(item => item.name.toLowerCase().includes(query));
-    if (foundIndex !== -1) {
-      const targetRow = rows[foundIndex].row;
-      targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      targetRow.classList.add('highlight');
-      clearTimeout(targetRow._ht);
-      targetRow._ht = setTimeout(() => targetRow.classList.remove('highlight'), 1500);
-    }
-  });
+ // Search / Cycle Match functionality
+ const searchInput = document.getElementById('searchInput');
+ const nextMatchBtn = document.getElementById('nextMatchBtn');
+ const searchCount = document.getElementById('searchCount');
+ 
+ let matchingIndices = [];
+ let currentMatchPointer = 0;
+ 
+ function jumpToMatch(index, focusInput = false) {
+   if (matchingIndices.length === 0) return;
+   
+   // Remove highlight from all rows first
+   rows.forEach(r => r.row.classList.remove('highlight'));
+   
+   const targetDataIndex = matchingIndices[index];
+   const targetRow = rows[targetDataIndex];
+   
+   targetRow.row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+   targetRow.row.classList.add('highlight');
+   
+   // Smart Focus: bring focus right to the item's number input
+   if (focusInput) {
+     targetRow.input.focus();
+   }
+   
+   // Update badge text
+   searchCount.textContent = `${index + 1}/${matchingIndices.length}`;
+ }
+ 
+ function performSearch() {
+   const query = searchInput.value.toLowerCase().trim();
+   if (!query) {
+     matchingIndices = [];
+     searchCount.classList.add('hidden');
+     nextMatchBtn.classList.add('hidden');
+     rows.forEach(r => r.row.classList.remove('highlight'));
+     return;
+   }
+   
+   matchingIndices = [];
+   state.forEach((item, idx) => {
+     if (item.name.toLowerCase().includes(query)) {
+       matchingIndices.push(idx);
+     }
+   });
+   
+   if (matchingIndices.length > 0) {
+     currentMatchPointer = 0;
+     searchCount.classList.remove('hidden');
+     nextMatchBtn.classList.remove('hidden');
+     jumpToMatch(currentMatchPointer, false);
+   } else {
+     searchCount.classList.add('hidden');
+     nextMatchBtn.classList.add('hidden');
+     rows.forEach(r => r.row.classList.remove('highlight'));
+   }
+ }
+ 
+ searchInput.addEventListener('input', performSearch);
+ 
+ nextMatchBtn.addEventListener('click', (e) => {
+   e.preventDefault();
+   if (matchingIndices.length === 0) return;
+   currentMatchPointer = (currentMatchPointer + 1) % matchingIndices.length;
+   jumpToMatch(currentMatchPointer, true); // Focus input on button tap for rapid entry
+ });
+ 
+ searchInput.addEventListener('keydown', (e) => {
+   if (e.key === 'Enter') {
+     e.preventDefault();
+     if (matchingIndices.length === 0) return;
+     currentMatchPointer = (currentMatchPointer + 1) % matchingIndices.length;
+     jumpToMatch(currentMatchPointer, true);
+   }
+ });
 </script>
 </body>
 </html>
