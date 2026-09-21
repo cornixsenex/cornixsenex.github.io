@@ -526,7 +526,7 @@ const ITEMS = [
  let matchingIndices = [];
  let currentMatchPointer = 0;
  
- function jumpToMatch(index, focusInput = false) {
+ function jumpToMatch(index) {
    if (matchingIndices.length === 0) return;
    
    // Remove highlight from all rows first
@@ -537,11 +537,6 @@ const ITEMS = [
    
    targetRow.row.scrollIntoView({ behavior: 'smooth', block: 'center' });
    targetRow.row.classList.add('highlight');
-   
-   // Smart Focus: bring focus right to the item's number input
-   if (focusInput) {
-     targetRow.input.focus();
-   }
    
    // Update badge text
    searchCount.textContent = `${index + 1}/${matchingIndices.length}`;
@@ -568,7 +563,7 @@ const ITEMS = [
      currentMatchPointer = 0;
      searchCount.classList.remove('hidden');
      nextMatchBtn.classList.remove('hidden');
-     jumpToMatch(currentMatchPointer, false);
+     jumpToMatch(currentMatchPointer);
    } else {
      searchCount.classList.add('hidden');
      nextMatchBtn.classList.add('hidden');
@@ -582,7 +577,7 @@ const ITEMS = [
    e.preventDefault();
    if (matchingIndices.length === 0) return;
    currentMatchPointer = (currentMatchPointer + 1) % matchingIndices.length;
-   jumpToMatch(currentMatchPointer, true); // Focus input on button tap for rapid entry
+   jumpToMatch(currentMatchPointer); 
  });
  
  searchInput.addEventListener('keydown', (e) => {
@@ -590,7 +585,7 @@ const ITEMS = [
      e.preventDefault();
      if (matchingIndices.length === 0) return;
      currentMatchPointer = (currentMatchPointer + 1) % matchingIndices.length;
-     jumpToMatch(currentMatchPointer, true);
+     jumpToMatch(currentMatchPointer);
    }
  });
 </script>
